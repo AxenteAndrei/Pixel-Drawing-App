@@ -43,6 +43,15 @@ function App() {
     }
   }, [activeTab]);
 
+  // Fetch README.md when Notes tab is activated on mobile
+  useEffect(() => {
+    if (activeTab === 'help' && !readmeContent) {
+      fetch('/README.md')
+        .then(res => res.text())
+        .then(text => setReadmeContent(text));
+    }
+  }, [activeTab, readmeContent]);
+
   // Set a larger pixelSize on mobile
   useEffect(() => {
     const isMobile = window.innerWidth < 768;
