@@ -43,10 +43,10 @@ function App() {
     }
   }, [activeTab]);
 
-  // Fetch README.md when Notes tab is activated on mobile
+  // Fetch PatchNotes.md when Notes tab is activated on mobile
   useEffect(() => {
     if (activeTab === 'help' && !readmeContent) {
-      fetch('/README.md')
+      fetch('/PatchNotes.md')
         .then(res => res.text())
         .then(text => setReadmeContent(text));
     }
@@ -193,7 +193,7 @@ function App() {
 
   const openHelp = async () => {
     setShowHelp(true);
-    const res = await fetch('/README.md');
+    const res = await fetch('/PatchNotes.md');
     const text = await res.text();
     setReadmeContent(text);
   };
