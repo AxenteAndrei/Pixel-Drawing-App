@@ -338,22 +338,24 @@ function App() {
           </div>
         </div>
       )}
-      {/* Controls */}
-      <Controls
-        canvasWidth={canvasState.width}
-        canvasHeight={canvasState.height}
-        onCanvasSizeChange={handleCanvasSizeChange}
-        onClearCanvas={handleClearCanvas}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onExport={handleExport}
-        pixelSize={pixelSize}
-        onPixelSizeChange={setPixelSize}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onImport={handleImportImage}
-        onPostDrawing={handlePostDrawing}
-      />
+      {/* Controls (hide on display tab) */}
+      {activeTab === 'draw' && (
+        <Controls
+          canvasWidth={canvasState.width}
+          canvasHeight={canvasState.height}
+          onCanvasSizeChange={handleCanvasSizeChange}
+          onClearCanvas={handleClearCanvas}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onExport={handleExport}
+          pixelSize={pixelSize}
+          onPixelSizeChange={setPixelSize}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onImport={handleImportImage}
+          onPostDrawing={handlePostDrawing}
+        />
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:flex-row">
