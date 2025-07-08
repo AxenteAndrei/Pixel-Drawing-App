@@ -211,6 +211,27 @@ function App() {
             <p className="text-sm text-gray-600">Create beautiful pixel art with precision</p>
           </div>
         </div>
+        {/* Desktop Navigation */}
+        <nav className="flex items-center space-x-4">
+          <button
+            className={`px-4 py-2 rounded font-medium transition-colors ${activeTab === 'draw' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => { setActiveTab('draw'); setShowHelp(false); }}
+          >
+            Draw
+          </button>
+          <button
+            className={`px-4 py-2 rounded font-medium transition-colors ${activeTab === 'display' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => { setActiveTab('display'); setShowHelp(false); }}
+          >
+            Display Drawings
+          </button>
+          <button
+            className={`px-4 py-2 rounded font-medium transition-colors ${activeTab === 'help' || showHelp ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+            onClick={() => { setActiveTab('help'); setShowHelp(true); }}
+          >
+            Notes
+          </button>
+        </nav>
       </div>
       {/* Swipeable Tools Bar (mobile only) */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 px-2 py-2 w-full">
