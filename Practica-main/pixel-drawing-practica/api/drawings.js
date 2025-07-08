@@ -1,19 +1,29 @@
-// WARNING: This is not persistent on Vercel! The data will reset frequently.
-let drawings = [];
+import { createClient } from '@supabase/supabase-js';
 
-export default function handler(req, res) {
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
+
+export default async function handler(req, res) {
   if (req.method === 'GET') {
-    res.status(200).json(drawings);
+    // Fetch all drawings
+    const { data, error } = await supabase
+      .from('drawings')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) return res.status(500).json({ error: error.message });
+    return res.status(200).json(data);
   } else if (req.method === 'POST') {
-    try {
-      const drawing = req.body;
-      drawing.id = Date.now().toString();
-      drawings.push(drawing);
-      res.status(201).json({ success: true, id: drawing.id });
-    } catch (e) {
-      res.status(400).json({ error: 'Invalid drawing data' });
-    }
+    // Insert a new drawing
+    const drawing = req.body;
+    const { data, error } = await supabase
+      .from('drawings')
+      .insert([{ data: drawing.canvasState }])
+      .select();
+    if (error) return res.status(400).json({ error: error.message });
+    return res.status(201).json({ success: true, drawing: data[0] });
   } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 } 
