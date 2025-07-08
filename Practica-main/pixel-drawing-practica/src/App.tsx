@@ -202,13 +202,6 @@ function App() {
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
 
-  const openHelp = async () => {
-    setShowHelp(true);
-    const res = await fetch('/PatchNotes.md');
-    const text = await res.text();
-    setReadmeContent(text);
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       {/* Header (desktop only) */}
@@ -244,98 +237,91 @@ function App() {
           </button>
         </nav>
       </div>
-      {/* Swipeable Tools Bar (mobile only) */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 px-2 py-2 w-full">
-        <div className="flex items-center overflow-x-auto space-x-2 scrollbar-hide">
-          <Toolbar
-            currentTool={currentTool}
-            onToolChange={setCurrentTool}
-            brushShape={brushShape}
-            onBrushShapeChange={setBrushShape}
-            brushSize={brushSize}
-            onBrushSizeChange={setBrushSize}
-            horizontal
-          />
-          {currentTool === 'brush' && (
-            <button
-              onClick={() => setShowBrushOptions(true)}
-              className="p-2 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 ml-2"
-              title="Brush Options"
-            >
-              <span className="text-xs font-semibold">Brush</span>
-            </button>
-          )}
-          <div className="flex items-center space-x-2 ml-2">
-            <button onClick={handleUndo} disabled={!canUndo} className="p-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"><span className="sr-only">Undo</span>↶</button>
-            <button onClick={handleRedo} disabled={!canRedo} className="p-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"><span className="sr-only">Redo</span>↷</button>
-            <button onClick={handleExport} className="p-2 rounded bg-green-100 text-green-700 hover:bg-green-200"><span className="sr-only">Save</span>💾</button>
-            <button onClick={handlePostDrawing} className="p-2 rounded bg-blue-100 text-blue-700 hover:bg-blue-200"><span className="sr-only">Post</span>⬆️</button>
-          </div>
-        </div>
-        <div className="overflow-x-auto flex space-x-2 mt-2 scrollbar-hide">
-          <ColorPalette
-            currentColor={currentColor}
-            onColorChange={setCurrentColor}
-            customColors={recentCustomColors}
-            horizontal
-            compact
-          />
-        </div>
-        {/* Brush Options Modal (mobile only) */}
-        {showBrushOptions && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-            <div className="bg-white rounded-lg shadow-xl max-w-xs w-full p-4 relative">
+      {/* Swipeable Tools Bar (mobile only, only show on 'draw' tab) */}
+      {activeTab === 'draw' && (
+        <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 px-2 py-2 w-full">
+          <div className="flex items-center overflow-x-auto space-x-2 scrollbar-hide">
+            <Toolbar
+              currentTool={currentTool}
+              onToolChange={setCurrentTool}
+              brushShape={brushShape}
+              onBrushShapeChange={setBrushShape}
+              brushSize={brushSize}
+              onBrushSizeChange={setBrushSize}
+              horizontal
+            />
+            {currentTool === 'brush' && (
               <button
-                onClick={() => setShowBrushOptions(false)}
-                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
-                title="Close"
+                onClick={() => setShowBrushOptions(true)}
+                className="p-2 rounded bg-purple-100 text-purple-700 hover:bg-purple-200 ml-2"
+                title="Brush Options"
               >
-                ×
+                <span className="text-xs font-semibold">Brush</span>
               </button>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Brush Shape</label>
-                  <div className="flex space-x-2">
-                    <button
-                      className={`px-3 py-1 rounded-lg border ${brushShape === 'circle' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}
-                      onClick={() => setBrushShape('circle')}
-                    >
-                      Circle
-                    </button>
-                    <button
-                      className={`px-3 py-1 rounded-lg border ${brushShape === 'square' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}
-                      onClick={() => setBrushShape('square')}
-                    >
-                      Square
-                    </button>
+            )}
+            <div className="flex items-center space-x-2 ml-2">
+              <button onClick={handleUndo} disabled={!canUndo} className="p-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"><span className="sr-only">Undo</span>↶</button>
+              <button onClick={handleRedo} disabled={!canRedo} className="p-2 rounded bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50"><span className="sr-only">Redo</span>↷</button>
+              <button onClick={handleExport} className="p-2 rounded bg-green-100 text-green-700 hover:bg-green-200"><span className="sr-only">Save</span>💾</button>
+              <button onClick={handlePostDrawing} className="p-2 rounded bg-blue-100 text-blue-700 hover:bg-blue-200"><span className="sr-only">Post</span>⬆️</button>
+            </div>
+          </div>
+          <div className="overflow-x-auto flex space-x-2 mt-2 scrollbar-hide">
+            <ColorPalette
+              currentColor={currentColor}
+              onColorChange={setCurrentColor}
+              customColors={recentCustomColors}
+              horizontal
+              compact
+            />
+          </div>
+          {/* Brush Options Modal (mobile only) */}
+          {showBrushOptions && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+              <div className="bg-white rounded-lg shadow-xl max-w-xs w-full p-4 relative">
+                <button
+                  onClick={() => setShowBrushOptions(false)}
+                  className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
+                  title="Close"
+                >
+                  ×
+                </button>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Brush Shape</label>
+                    <div className="flex space-x-2">
+                      <button
+                        className={`px-3 py-1 rounded-lg border ${brushShape === 'circle' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}
+                        onClick={() => setBrushShape('circle')}
+                      >
+                        Circle
+                      </button>
+                      <button
+                        className={`px-3 py-1 rounded-lg border ${brushShape === 'square' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700'}`}
+                        onClick={() => setBrushShape('square')}
+                      >
+                        Square
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Brush Size</label>
-                  <input
-                    type="range"
-                    min={1}
-                    max={10}
-                    value={brushSize}
-                    onChange={e => setBrushSize(Number(e.target.value))}
-                    className="w-full"
-                  />
-                  <div className="text-xs text-gray-600 mt-1">{brushSize} px</div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Brush Size</label>
+                    <input
+                      type="range"
+                      min={1}
+                      max={10}
+                      value={brushSize}
+                      onChange={e => setBrushSize(Number(e.target.value))}
+                      className="w-full"
+                    />
+                    <div className="text-xs text-gray-600 mt-1">{brushSize} px</div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-      {/* Help Button */}
-      <button
-        onClick={openHelp}
-        className="hidden md:flex fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-blue-500 text-white text-2xl font-bold shadow-lg items-center justify-center hover:bg-blue-600 transition-colors"
-        title="Help"
-        style={{ lineHeight: 1 }}
-      >
-        ?
-      </button>
+          )}
+        </div>
+      )}
       {/* Help Modal (mobile: show if activeTab === 'help', desktop: show if showHelp) */}
       {(showHelp || activeTab === 'help') && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
