@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Palette } from 'lucide-react';
+import { Edit, Image as ImageIcon, Palette } from 'lucide-react';
 import Canvas from './components/Canvas';
 import ColorPalette from './components/ColorPalette';
 import Toolbar from './components/Toolbar';
@@ -22,7 +22,7 @@ function App() {
   const [recentCustomColors, setRecentCustomColors] = useState<Color[]>(
     Array(8).fill({ r: 255, g: 255, b: 255, a: 1 })
   );
-  const [activeTab, setActiveTab] = useState<'draw' | 'display'>('draw');
+  const [activeTab, setActiveTab] = useState<'draw' | 'display' | 'help'>('draw');
   const [drawings, setDrawings] = useState<{ id: string; canvasState: CanvasState; createdAt?: string }[]>([]);
   const [loadingDrawings, setLoadingDrawings] = useState(false);
   const [drawingsError, setDrawingsError] = useState<string | null>(null);
@@ -41,6 +41,14 @@ function App() {
         .finally(() => setLoadingDrawings(false));
     }
   }, [activeTab]);
+
+  // Set a larger pixelSize on mobile
+  useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      setPixelSize(28);
+    }
+  }, []);
 
   const pushRecentCustomColor = useCallback((color: Color) => {
     setRecentCustomColors(prev => {
@@ -180,52 +188,10 @@ function App() {
     setReadmeContent(text);
   };
 
-  const closeHelp = () => setShowHelp(false);
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
-      {/* Tab Navigation */}
-      <div className="bg-white border-b border-gray-200 px-6 py-2 flex space-x-4">
-        <button
-          className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none transition-colors ${activeTab === 'draw' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-          onClick={() => setActiveTab('draw')}
-        >
-          Draw
-        </button>
-        <button
-          className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none transition-colors ${activeTab === 'display' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
-          onClick={() => setActiveTab('display')}
-        >
-          Display Drawings
-        </button>
-      </div>
-      {/* Help Button */}
-      <button
-        onClick={openHelp}
-        className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-blue-500 text-white text-2xl font-bold shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors"
-        title="Help"
-        style={{ lineHeight: 1 }}
-      >
-        ?
-      </button>
-      {/* Help Modal */}
-      {showHelp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 relative">
-            <button
-              onClick={closeHelp}
-              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
-              title="Close"
-            >
-              ×
-            </button>
-            <h2 className="text-xl font-semibold mb-4">App Features</h2>
-            <pre className="whitespace-pre-wrap text-sm text-gray-800 max-h-[60vh] overflow-y-auto">{readmeContent}</pre>
-          </div>
-        </div>
-      )}
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4">
+      {/* Header (desktop only) */}
+      <div className="hidden md:flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3 md:px-6 md:py-4">
         <div className="flex items-center space-x-3">
           <div className="p-2 bg-gradient-to-r from-blue-500 to-teal-500 rounded-lg">
             <Palette className="h-6 w-6 text-white" />
@@ -236,7 +202,54 @@ function App() {
           </div>
         </div>
       </div>
-
+      {/* Swipeable Tools Bar (mobile only) */}
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 px-2 py-2 w-full">
+        <div className="overflow-x-auto flex space-x-2 scrollbar-hide">
+          <Toolbar
+            currentTool={currentTool}
+            onToolChange={setCurrentTool}
+            brushShape={brushShape}
+            onBrushShapeChange={setBrushShape}
+            brushSize={brushSize}
+            onBrushSizeChange={setBrushSize}
+            horizontal
+          />
+        </div>
+        <div className="overflow-x-auto flex space-x-2 mt-2 scrollbar-hide">
+          <ColorPalette
+            currentColor={currentColor}
+            onColorChange={setCurrentColor}
+            customColors={recentCustomColors}
+            horizontal
+            compact
+          />
+        </div>
+      </div>
+      {/* Help Button */}
+      <button
+        onClick={openHelp}
+        className="hidden md:flex fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full bg-blue-500 text-white text-2xl font-bold shadow-lg items-center justify-center hover:bg-blue-600 transition-colors"
+        title="Help"
+        style={{ lineHeight: 1 }}
+      >
+        ?
+      </button>
+      {/* Help Modal (mobile: show if activeTab === 'help', desktop: show if showHelp) */}
+      {(showHelp || activeTab === 'help') && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6 relative">
+            <button
+              onClick={() => { setShowHelp(false); setActiveTab('draw'); }}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
+              title="Close"
+            >
+              ×
+            </button>
+            <h2 className="text-xl font-semibold mb-4">App Features</h2>
+            <pre className="whitespace-pre-wrap text-sm text-gray-800 max-h-[60vh] overflow-y-auto">{readmeContent}</pre>
+          </div>
+        </div>
+      )}
       {/* Controls */}
       <Controls
         canvasWidth={canvasState.width}
@@ -255,11 +268,11 @@ function App() {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex flex-col md:flex-row">
         {activeTab === 'draw' ? (
           <>
-            {/* Sidebar */}
-            <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto">
+            {/* Sidebar (desktop only) */}
+            <div className="hidden md:block w-64 bg-gray-50 md:border-r border-gray-200 p-4 overflow-y-auto mb-4 md:mb-0">
               <Toolbar
                 currentTool={currentTool}
                 onToolChange={setCurrentTool}
@@ -273,8 +286,7 @@ function App() {
                 onColorChange={setCurrentColor}
                 customColors={recentCustomColors}
               />
-              {/* Info Panel */}
-              <div className="bg-white rounded-lg shadow-lg p-4">
+              <div className="bg-white rounded-lg shadow-lg p-4 mt-4">
                 <h3 className="text-lg font-semibold text-gray-800 mb-3">Info</h3>
                 <div className="space-y-2 text-sm text-gray-600">
                   <div>Canvas: {canvasState.width} × {canvasState.height}</div>
@@ -285,17 +297,21 @@ function App() {
               </div>
             </div>
             {/* Canvas Area */}
-            <Canvas
-              canvasState={canvasState}
-              onCanvasChange={handleCanvasChange}
-              currentColor={currentColor}
-              currentTool={currentTool}
-              pixelSize={pixelSize}
-              onColorPick={setCurrentColor}
-              brushShape={brushShape}
-              brushSize={brushSize}
-              onCustomColorUsed={pushRecentCustomColor}
-            />
+            <div className="flex-1 flex items-center justify-center overflow-auto md:p-2 md:pb-0 md:pt-0 min-h-[60vh] md:min-h-0" style={{ height: 'calc(100vh - 84px - 56px)' }}>
+              <div className="w-full flex justify-center" style={{ maxWidth: '100vw', maxHeight: '80vh' }}>
+                <Canvas
+                  canvasState={canvasState}
+                  onCanvasChange={handleCanvasChange}
+                  currentColor={currentColor}
+                  currentTool={currentTool}
+                  pixelSize={pixelSize}
+                  onColorPick={setCurrentColor}
+                  brushShape={brushShape}
+                  brushSize={brushSize}
+                  onCustomColorUsed={pushRecentCustomColor}
+                />
+              </div>
+            </div>
           </>
         ) : (
           <div className="flex-1 p-8 overflow-y-auto">
@@ -318,6 +334,30 @@ function App() {
           </div>
         )}
       </div>
+      {/* Bottom Navigation Bar (mobile only) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 flex justify-around py-2 w-full">
+        <button
+          className={`flex flex-col items-center flex-1 ${activeTab === 'draw' ? 'text-blue-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('draw')}
+        >
+          <Edit />
+          <span className="text-xs mt-1">Draw</span>
+        </button>
+        <button
+          className={`flex flex-col items-center flex-1 ${activeTab === 'display' ? 'text-blue-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('display')}
+        >
+          <ImageIcon />
+          <span className="text-xs mt-1">Display</span>
+        </button>
+        <button
+          className={`flex flex-col items-center flex-1 ${activeTab === 'help' ? 'text-blue-600' : 'text-gray-500'}`}
+          onClick={() => setActiveTab('help')}
+        >
+          <span className="text-lg">?</span>
+          <span className="text-xs mt-1">Help</span>
+        </button>
+      </nav>
     </div>
   );
 }

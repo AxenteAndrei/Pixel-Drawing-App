@@ -30,6 +30,12 @@ export default function Canvas({
   const [lastDrawnPixel, setLastDrawnPixel] = useState<{x: number, y: number} | null>(null);
   const drawnPixelsRef = useRef<Set<string>>(new Set());
   const [localPixels, setLocalPixels] = useState<Pixel[][] | null>(null);
+  // Pinch-to-zoom and pan state
+  const [scale, setScale] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const lastTouch = useRef<{ x: number; y: number } | null>(null);
+  const lastDistance = useRef<number | null>(null);
+  const lastOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // List of default colors (should match ColorPalette)
   const defaultColors: Color[] = [
@@ -71,6 +77,11 @@ export default function Canvas({
 
       // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Apply pan and zoom
+      ctx.save();
+      ctx.translate(offset.x, offset.y);
+      ctx.scale(scale, scale);
 
       // Draw checkerboard background
       ctx.fillStyle = '#f0f0f0';
@@ -116,9 +127,10 @@ export default function Canvas({
       }
 
       ctx.globalAlpha = 1;
+      ctx.restore();
     };
     drawCanvas();
-  }, [canvasState, pixelSize, localPixels]);
+  }, [canvasState, pixelSize, localPixels, scale, offset]);
 
   const getPixelCoordinates = (event: React.MouseEvent): { x: number; y: number } | null => {
     const canvas = canvasRef.current;
@@ -262,6 +274,45 @@ export default function Canvas({
     notifyCustomColorUsed();
   };
 
+  // Touch event handlers for pinch-to-zoom and pan
+  const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 1) {
+      lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      lastOffset.current = { ...offset };
+    } else if (e.touches.length === 2) {
+      lastDistance.current = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      lastOffset.current = { ...offset };
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 1 && lastTouch.current) {
+      // Pan
+      const dx = e.touches[0].clientX - lastTouch.current.x;
+      const dy = e.touches[0].clientY - lastTouch.current.y;
+      setOffset({ x: lastOffset.current.x + dx, y: lastOffset.current.y + dy });
+    } else if (e.touches.length === 2 && lastDistance.current !== null) {
+      // Pinch to zoom
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      let newScale = scale * (dist / lastDistance.current);
+      newScale = Math.max(0.5, Math.min(newScale, 6));
+      setScale(newScale);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
+    if (e.touches.length === 0) {
+      lastTouch.current = null;
+      lastDistance.current = null;
+    }
+  };
+
   return (
     <div className="flex-1 flex items-center justify-center p-4 bg-gray-50">
       <div
@@ -275,13 +326,20 @@ export default function Canvas({
           ref={canvasRef}
           width={canvasState.width * pixelSize}
           height={canvasState.height * pixelSize}
+          className="block mx-auto rounded shadow bg-white touch-none"
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
           onClick={handleClick}
-          className="cursor-crosshair border border-gray-200 rounded"
-          style={{ imageRendering: 'pixelated', display: 'block' }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          style={{
+            maxWidth: '100%',
+            maxHeight: '100%',
+            touchAction: 'none',
+            background: 'white',
+          }}
         />
       </div>
     </div>

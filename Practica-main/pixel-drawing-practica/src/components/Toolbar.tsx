@@ -8,6 +8,7 @@ interface ToolbarProps {
   onBrushShapeChange: (shape: BrushShape) => void;
   brushSize: number;
   onBrushSizeChange: (size: number) => void;
+  horizontal?: boolean;
 }
 
 const tools = [
@@ -18,7 +19,30 @@ const tools = [
   { id: 'brush' as Tool, icon: Brush, label: 'Brush' },
 ];
 
-export default function Toolbar({ currentTool, onToolChange, brushShape, onBrushShapeChange, brushSize, onBrushSizeChange }: ToolbarProps) {
+export default function Toolbar({ currentTool, onToolChange, brushShape, onBrushShapeChange, brushSize, onBrushSizeChange, horizontal }: ToolbarProps) {
+  if (horizontal) {
+    return (
+      <div className="flex items-center space-x-2 overflow-x-auto w-full">
+        {tools.map((tool) => {
+          const Icon = tool.icon;
+          return (
+            <button
+              key={tool.id}
+              onClick={() => onToolChange(tool.id)}
+              className={`flex flex-col items-center justify-center px-2 py-1 rounded-lg transition-all min-w-[56px] ${
+                currentTool === tool.id
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+              }`}
+            >
+              <Icon size={24} />
+              <span className="text-xs mt-1">{tool.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
       <h3 className="text-lg font-semibold text-gray-800 mb-3">Tools</h3>

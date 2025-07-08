@@ -85,10 +85,10 @@ export default function Controls({
   };
 
   return (
-    <div className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex flex-wrap items-center gap-4">
+    <div className="bg-white border-b border-gray-200 px-2 sm:px-6 py-2 sm:py-4">
+      <div className="flex flex-nowrap overflow-x-auto gap-2 sm:gap-4 sm:flex-wrap sm:overflow-visible items-center">
         {/* Canvas Size Controls */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 min-w-max">
           <label className="text-sm font-medium text-gray-700">Size:</label>
           <input
             type="number"
@@ -114,7 +114,7 @@ export default function Controls({
         </div>
 
         {/* Pixel Size Control */}
-        <div className="flex items-center space-x-2">
+        <div className="hidden md:flex items-center space-x-2 min-w-max">
           <label className="text-sm font-medium text-gray-700">Zoom:</label>
           <input
             type="range"
@@ -128,7 +128,7 @@ export default function Controls({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 min-w-max">
           <button
             onClick={onUndo}
             disabled={!canUndo}

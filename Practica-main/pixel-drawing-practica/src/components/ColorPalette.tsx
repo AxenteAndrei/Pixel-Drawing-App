@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Color } from '../types';
 import { colorToString, stringToColor } from '../utils';
+import React from 'react';
 
 interface ColorPaletteProps {
   currentColor: Color;
   onColorChange: (color: Color) => void;
   customColors: Color[];
+  horizontal?: boolean;
+  compact?: boolean;
 }
 
 const defaultColors: Color[] = [
@@ -31,7 +34,7 @@ const defaultColors: Color[] = [
   { r: 128, g: 0, b: 128, a: 1 },
 ];
 
-export default function ColorPalette({ currentColor, onColorChange, customColors }: ColorPaletteProps) {
+export default function ColorPalette({ currentColor, onColorChange, customColors, horizontal, compact }: ColorPaletteProps) {
   const [showCustomPicker, setShowCustomPicker] = useState(false);
   const [customColorValue, setCustomColorValue] = useState('#000000');
   const [customAlpha, setCustomAlpha] = useState(1);
@@ -49,6 +52,95 @@ export default function ColorPalette({ currentColor, onColorChange, customColors
     const newColor = { ...color, a: value };
     onColorChange(newColor);
   };
+
+  if (horizontal) {
+    const mobileDefaultColors = defaultColors.slice(0, 8);
+    return (
+      <>
+        <div className={`flex items-center space-x-1 ${compact ? 'py-1' : 'py-2'}`}>
+          {/* Default Colors (mobile: only 8) */}
+          {mobileDefaultColors.map((color, index) => (
+            <button
+              key={index}
+              onClick={() => onColorChange(color)}
+              className={`rounded-lg border-2 transition-transform ${
+                colorToString(color) === colorToString(currentColor)
+                  ? 'border-blue-500 ring-2 ring-blue-200'
+                  : 'border-gray-300 hover:border-gray-400'
+              } ${compact ? 'w-7 h-7' : 'w-10 h-10'}`}
+              style={{ backgroundColor: colorToString(color) }}
+              title={`RGB(${color.r}, ${color.g}, ${color.b})`}
+            />
+          ))}
+          {/* Custom Colors */}
+          {customColors.map((color, idx) => (
+            <button
+              key={"custom-" + idx}
+              onClick={() => onColorChange(color)}
+              className={`rounded-lg border-2 transition-transform ${
+                colorToString(color) === colorToString(currentColor)
+                  ? 'border-blue-500 ring-2 ring-blue-200'
+                  : 'border-gray-300 hover:border-gray-400'
+              } ${compact ? 'w-6 h-6' : 'w-8 h-8'}`}
+              style={{ backgroundColor: colorToString(color) }}
+              title={`RGB(${color.r}, ${color.g}, ${color.b}), A: ${Math.round(color.a * 100)}%`}
+            />
+          ))}
+          {/* Custom Color Button */}
+          <button
+            onClick={() => setShowCustomPicker(true)}
+            className={`rounded-lg border-2 border-dashed border-gray-400 flex items-center justify-center ${compact ? 'w-7 h-7' : 'w-10 h-10'} bg-gray-100 text-gray-500 hover:bg-gray-200`}
+            title="Add custom color"
+          >
+            +
+          </button>
+        </div>
+        {/* Custom Color Picker Modal */}
+        {showCustomPicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+            <div className="bg-white rounded-lg shadow-xl max-w-xs w-full p-4 relative">
+              <button
+                onClick={() => setShowCustomPicker(false)}
+                className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-2xl font-bold"
+                title="Close"
+              >
+                ×
+              </button>
+              <div className="mt-3 space-y-2">
+                <input
+                  type="color"
+                  value={customColorValue}
+                  onChange={(e) => handleCustomColorChange(e.target.value)}
+                  className="w-full h-10 rounded-lg border border-gray-300 cursor-pointer"
+                />
+                <input
+                  type="text"
+                  value={customColorValue}
+                  onChange={(e) => handleCustomColorChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono"
+                  placeholder="#000000"
+                />
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="opacity-slider" className="text-sm text-gray-600">Opacity</label>
+                  <input
+                    id="opacity-slider"
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={customAlpha}
+                    onChange={(e) => handleAlphaChange(Number(e.target.value))}
+                    className="flex-1"
+                  />
+                  <span className="text-xs w-8 text-right">{Math.round(customAlpha * 100)}%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-lg p-4 mb-4">
