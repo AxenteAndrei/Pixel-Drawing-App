@@ -30,22 +30,14 @@ export default function Canvas({
   const [lastDrawnPixel, setLastDrawnPixel] = useState<{x: number, y: number} | null>(null);
   const drawnPixelsRef = useRef<Set<string>>(new Set());
   const [localPixels, setLocalPixels] = useState<Pixel[][] | null>(null);
-  // Pinch-to-zoom and pan state
-  const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const lastTouch = useRef<{ x: number; y: number } | null>(null);
-  const lastDistance = useRef<number | null>(null);
-  const lastOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const initialScale = useRef<number>(1);
 
   // Utility: Map touch to canvas pixel (with scale, offset, devicePixelRatio)
   function getTouchCanvasCoords(touch: { clientX: number; clientY: number }) {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return { x: 0, y: 0 };
     const dpr = window.devicePixelRatio || 1;
-    // Adjust for offset and scale
-    const x = Math.floor(((touch.clientX - rect.left - offset.x) / scale) / pixelSize * dpr);
-    const y = Math.floor(((touch.clientY - rect.top - offset.y) / scale) / pixelSize * dpr);
+    const x = Math.floor((touch.clientX - rect.left) / pixelSize * dpr);
+    const y = Math.floor((touch.clientY - rect.top) / pixelSize * dpr);
     return { x, y };
   }
 
@@ -92,8 +84,8 @@ export default function Canvas({
 
       // Apply pan and zoom
       ctx.save();
-      ctx.translate(offset.x, offset.y);
-      ctx.scale(scale, scale);
+      ctx.translate(0, 0); // Removed offset
+      ctx.scale(1, 1); // Removed scale
 
       // Draw checkerboard background
       ctx.fillStyle = '#f0f0f0';
@@ -142,7 +134,7 @@ export default function Canvas({
       ctx.restore();
     };
     drawCanvas();
-  }, [canvasState, pixelSize, localPixels, scale, offset]);
+  }, [canvasState, pixelSize, localPixels]);
 
   const getPixelCoordinates = (event: React.MouseEvent): { x: number; y: number } | null => {
     const canvas = canvasRef.current;
@@ -288,35 +280,19 @@ export default function Canvas({
 
   // Touch event handlers for pinch-to-zoom, pan, and drawing
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length === 1) {
-      // Drawing with one finger
-      if (["pencil", "eraser", "brush"].includes(currentTool)) {
-        const { x, y } = getTouchCanvasCoords(e.touches[0]);
-        setIsDrawing(true);
-        setLastDrawnPixel({ x, y });
-        drawnPixelsRef.current = new Set();
-        setLocalPixels(canvasState.pixels.map(row => row.map(pixel => ({ ...pixel }))));
-        drawPixel(x, y, true);
-        e.preventDefault();
-      } else {
-        lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-        lastOffset.current = { ...offset };
-      }
-    } else if (e.touches.length === 2) {
-      // Pinch-to-zoom start
-      lastDistance.current = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      lastOffset.current = { ...offset };
-      initialScale.current = scale;
+    if (e.touches.length === 1 && ["pencil", "eraser", "brush"].includes(currentTool)) {
+      const { x, y } = getTouchCanvasCoords(e.touches[0]);
+      setIsDrawing(true);
+      setLastDrawnPixel({ x, y });
+      drawnPixelsRef.current = new Set();
+      setLocalPixels(canvasState.pixels.map(row => row.map(pixel => ({ ...pixel }))));
+      drawPixel(x, y, true);
       e.preventDefault();
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.touches.length === 1 && isDrawing && ["pencil", "eraser", "brush"].includes(currentTool)) {
-      // Drawing with one finger
       const { x, y } = getTouchCanvasCoords(e.touches[0]);
       const key = `${x},${y}`;
       if (drawnPixelsRef.current.has(key)) return;
@@ -325,24 +301,6 @@ export default function Canvas({
       setLastDrawnPixel({ x, y });
       drawPixel(x, y, true);
       e.preventDefault();
-    } else if (e.touches.length === 2 && lastDistance.current !== null) {
-      // Pinch to zoom and pan
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      // Smoother zoom: use ratio from initial scale
-      let newScale = initialScale.current * (dist / lastDistance.current);
-      newScale = Math.max(0.7, Math.min(newScale, 5));
-      setScale(newScale);
-      // For simplicity, just keep pan as before (can be improved for true midpoint tracking)
-      setOffset(lastOffset.current);
-      e.preventDefault();
-    } else if (e.touches.length === 1 && !isDrawing) {
-      // Pan with one finger only if not drawing
-      const dx = e.touches[0].clientX - (lastTouch.current?.x || 0);
-      const dy = e.touches[0].clientY - (lastTouch.current?.y || 0);
-      setOffset({ x: lastOffset.current.x + dx, y: lastOffset.current.y + dy });
     }
   };
 
@@ -356,10 +314,6 @@ export default function Canvas({
         setLocalPixels(null);
       }
       e.preventDefault();
-    }
-    if (e.touches.length === 0) {
-      lastTouch.current = null;
-      lastDistance.current = null;
     }
   };
 
