@@ -37,7 +37,18 @@ function App() {
           if (!res.ok) throw new Error('Failed to fetch drawings');
           return res.json();
         })
-        .then(data => setDrawings(data))
+        .then(data => {
+          // Map API response to expected shape
+          type SupabaseDrawing = { id: string; data: CanvasState; created_at?: string };
+          const mapped = Array.isArray(data)
+            ? data.map((d: SupabaseDrawing) => ({
+                id: d.id,
+                canvasState: d.data, // Supabase column is 'data'
+                createdAt: d.created_at,
+              }))
+            : [];
+          setDrawings(mapped);
+        })
         .catch(() => setDrawingsError('Failed to load drawings.'))
         .finally(() => setLoadingDrawings(false));
     }
