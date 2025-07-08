@@ -36,6 +36,18 @@ export default function Canvas({
   const lastTouch = useRef<{ x: number; y: number } | null>(null);
   const lastDistance = useRef<number | null>(null);
   const lastOffset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const initialScale = useRef<number>(1);
+
+  // Utility: Map touch to canvas pixel (with scale, offset, devicePixelRatio)
+  function getTouchCanvasCoords(touch: { clientX: number; clientY: number }) {
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return { x: 0, y: 0 };
+    const dpr = window.devicePixelRatio || 1;
+    // Adjust for offset and scale
+    const x = Math.floor(((touch.clientX - rect.left - offset.x) / scale) / pixelSize * dpr);
+    const y = Math.floor(((touch.clientY - rect.top - offset.y) / scale) / pixelSize * dpr);
+    return { x, y };
+  }
 
   // List of default colors (should match ColorPalette)
   const defaultColors: Color[] = [
@@ -278,11 +290,8 @@ export default function Canvas({
   const handleTouchStart = (e: React.TouchEvent<HTMLCanvasElement>) => {
     if (e.touches.length === 1) {
       // Drawing with one finger
-      if (['pencil', 'eraser', 'brush'].includes(currentTool)) {
-        const rect = canvasRef.current?.getBoundingClientRect();
-        if (!rect) return;
-        const x = Math.floor((e.touches[0].clientX - rect.left - offset.x) / (pixelSize * scale));
-        const y = Math.floor((e.touches[0].clientY - rect.top - offset.y) / (pixelSize * scale));
+      if (["pencil", "eraser", "brush"].includes(currentTool)) {
+        const { x, y } = getTouchCanvasCoords(e.touches[0]);
         setIsDrawing(true);
         setLastDrawnPixel({ x, y });
         drawnPixelsRef.current = new Set();
@@ -294,23 +303,21 @@ export default function Canvas({
         lastOffset.current = { ...offset };
       }
     } else if (e.touches.length === 2) {
+      // Pinch-to-zoom start
       lastDistance.current = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
       lastOffset.current = { ...offset };
+      initialScale.current = scale;
       e.preventDefault();
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (e.touches.length === 1 && isDrawing && ['pencil', 'eraser', 'brush'].includes(currentTool)) {
+    if (e.touches.length === 1 && isDrawing && ["pencil", "eraser", "brush"].includes(currentTool)) {
       // Drawing with one finger
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const x = Math.floor((e.touches[0].clientX - rect.left - offset.x) / (pixelSize * scale));
-      const y = Math.floor((e.touches[0].clientY - rect.top - offset.y) / (pixelSize * scale));
-      // Avoid drawing on the same pixel repeatedly in a stroke
+      const { x, y } = getTouchCanvasCoords(e.touches[0]);
       const key = `${x},${y}`;
       if (drawnPixelsRef.current.has(key)) return;
       drawnPixelsRef.current.add(key);
@@ -319,24 +326,28 @@ export default function Canvas({
       drawPixel(x, y, true);
       e.preventDefault();
     } else if (e.touches.length === 2 && lastDistance.current !== null) {
-      // Pinch to zoom
+      // Pinch to zoom and pan
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      let newScale = scale * (dist / lastDistance.current);
-      newScale = Math.max(0.5, Math.min(newScale, 6));
+      // Smoother zoom: use ratio from initial scale
+      let newScale = initialScale.current * (dist / lastDistance.current);
+      newScale = Math.max(0.7, Math.min(newScale, 5));
       setScale(newScale);
+      // For simplicity, just keep pan as before (can be improved for true midpoint tracking)
+      setOffset(lastOffset.current);
       e.preventDefault();
     } else if (e.touches.length === 1 && !isDrawing) {
       // Pan with one finger only if not drawing
-      lastTouch.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-      lastOffset.current = { ...offset };
+      const dx = e.touches[0].clientX - (lastTouch.current?.x || 0);
+      const dy = e.touches[0].clientY - (lastTouch.current?.y || 0);
+      setOffset({ x: lastOffset.current.x + dx, y: lastOffset.current.y + dy });
     }
   };
 
   const handleTouchEnd = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    if (isDrawing && e.touches.length === 0 && ['pencil', 'eraser', 'brush'].includes(currentTool)) {
+    if (isDrawing && e.touches.length === 0 && ["pencil", "eraser", "brush"].includes(currentTool)) {
       setIsDrawing(false);
       setLastDrawnPixel(null);
       drawnPixelsRef.current = new Set();
