@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Palette } from 'lucide-react';
 import Canvas from './components/Canvas';
 import ColorPalette from './components/ColorPalette';
@@ -6,6 +6,7 @@ import Toolbar from './components/Toolbar';
 import Controls from './components/Controls';
 import { CanvasState, Color, Tool, HistoryState, BrushShape } from './types';
 import { createEmptyCanvas, defaultColor, exportCanvasAsPNG } from './utils';
+import React from 'react';
 
 function App() {
   const [canvasState, setCanvasState] = useState<CanvasState>(() => createEmptyCanvas(32, 32));
@@ -22,6 +23,24 @@ function App() {
     Array(8).fill({ r: 255, g: 255, b: 255, a: 1 })
   );
   const [activeTab, setActiveTab] = useState<'draw' | 'display'>('draw');
+  const [drawings, setDrawings] = useState<{ id: string; canvasState: CanvasState; createdAt?: string }[]>([]);
+  const [loadingDrawings, setLoadingDrawings] = useState(false);
+  const [drawingsError, setDrawingsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (activeTab === 'display') {
+      setLoadingDrawings(true);
+      setDrawingsError(null);
+      fetch('/api/drawings')
+        .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch drawings');
+          return res.json();
+        })
+        .then(data => setDrawings(data))
+        .catch(() => setDrawingsError('Failed to load drawings.'))
+        .finally(() => setLoadingDrawings(false));
+    }
+  }, [activeTab]);
 
   const pushRecentCustomColor = useCallback((color: Color) => {
     setRecentCustomColors(prev => {
@@ -134,9 +153,21 @@ function App() {
     setHistoryIndex((prev) => prev + 1);
   }, [saveToHistory]);
 
-  const handlePostDrawing = useCallback(() => {
-    // TODO: Save the current drawing to the drawings list
-    console.log('Post Drawing clicked', canvasState);
+  const handlePostDrawing = useCallback(async () => {
+    try {
+      const response = await fetch('/api/drawings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          canvasState,
+          createdAt: new Date().toISOString(),
+        }),
+      });
+      if (!response.ok) throw new Error('Failed to post drawing');
+      alert('Drawing posted successfully!');
+    } catch {
+      alert('Error posting drawing.');
+    }
   }, [canvasState]);
 
   const canUndo = historyIndex > 0;
@@ -267,13 +298,51 @@ function App() {
             />
           </>
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-gray-500 text-xl font-semibold">Display Drawings tab coming soon...</div>
+          <div className="flex-1 p-8 overflow-y-auto">
+            {loadingDrawings ? (
+              <div className="text-gray-500 text-lg">Loading drawings...</div>
+            ) : drawingsError ? (
+              <div className="text-red-500 text-lg">{drawingsError}</div>
+            ) : drawings.length === 0 ? (
+              <div className="text-gray-500 text-lg">No drawings posted yet.</div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6">
+                {drawings.map((drawing) => (
+                  <div key={drawing.id} className="bg-white rounded-lg shadow p-2 flex flex-col items-center">
+                    <DrawingThumbnail canvasState={drawing.canvasState} />
+                    <div className="text-xs text-gray-400 mt-2">{drawing.createdAt ? new Date(drawing.createdAt).toLocaleString() : ''}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
     </div>
   );
+}
+
+// DrawingThumbnail component for rendering a small canvas
+function DrawingThumbnail({ canvasState }: { canvasState: CanvasState }) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (!canvasRef.current || !canvasState) return;
+    const ctx = canvasRef.current.getContext('2d');
+    if (!ctx) return;
+    const { pixels, width, height } = canvasState;
+    ctx.clearRect(0, 0, width, height);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const pixel = pixels[y][x];
+        if (!pixel.isEmpty) {
+          const { r, g, b, a } = pixel.color;
+          ctx.fillStyle = `rgba(${r},${g},${b},${a})`;
+          ctx.fillRect(x, y, 1, 1);
+        }
+      }
+    }
+  }, [canvasState]);
+  return <canvas ref={canvasRef} width={canvasState.width} height={canvasState.height} style={{ width: 64, height: 64, imageRendering: 'pixelated', border: '1px solid #eee', background: '#fff' }} />;
 }
 
 export default App;
