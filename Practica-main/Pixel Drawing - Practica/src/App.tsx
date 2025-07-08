@@ -21,6 +21,7 @@ function App() {
   const [recentCustomColors, setRecentCustomColors] = useState<Color[]>(
     Array(8).fill({ r: 255, g: 255, b: 255, a: 1 })
   );
+  const [activeTab, setActiveTab] = useState<'draw' | 'display'>('draw');
 
   const pushRecentCustomColor = useCallback((color: Color) => {
     setRecentCustomColors(prev => {
@@ -133,6 +134,11 @@ function App() {
     setHistoryIndex((prev) => prev + 1);
   }, [saveToHistory]);
 
+  const handlePostDrawing = useCallback(() => {
+    // TODO: Save the current drawing to the drawings list
+    console.log('Post Drawing clicked', canvasState);
+  }, [canvasState]);
+
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
 
@@ -147,6 +153,21 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
+      {/* Tab Navigation */}
+      <div className="bg-white border-b border-gray-200 px-6 py-2 flex space-x-4">
+        <button
+          className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none transition-colors ${activeTab === 'draw' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          onClick={() => setActiveTab('draw')}
+        >
+          Draw
+        </button>
+        <button
+          className={`px-4 py-2 rounded-t-md font-semibold focus:outline-none transition-colors ${activeTab === 'display' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+          onClick={() => setActiveTab('display')}
+        >
+          Display Drawings
+        </button>
+      </div>
       {/* Help Button */}
       <button
         onClick={openHelp}
@@ -199,51 +220,57 @@ function App() {
         canUndo={canUndo}
         canRedo={canRedo}
         onImport={handleImportImage}
+        onPostDrawing={handlePostDrawing}
       />
 
       {/* Main Content */}
       <div className="flex-1 flex">
-        {/* Sidebar */}
-        <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto">
-          <Toolbar
-            currentTool={currentTool}
-            onToolChange={setCurrentTool}
-            brushShape={brushShape}
-            onBrushShapeChange={setBrushShape}
-            brushSize={brushSize}
-            onBrushSizeChange={setBrushSize}
-          />
-          
-          <ColorPalette
-            currentColor={currentColor}
-            onColorChange={setCurrentColor}
-            customColors={recentCustomColors}
-          />
-          
-          {/* Info Panel */}
-          <div className="bg-white rounded-lg shadow-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Info</h3>
-            <div className="space-y-2 text-sm text-gray-600">
-              <div>Canvas: {canvasState.width} × {canvasState.height}</div>
-              <div>Tool: {currentTool}</div>
-              <div>Zoom: {pixelSize}px per pixel</div>
-              <div>History: {history.length} states</div>
+        {activeTab === 'draw' ? (
+          <>
+            {/* Sidebar */}
+            <div className="w-64 bg-gray-50 border-r border-gray-200 p-4 overflow-y-auto">
+              <Toolbar
+                currentTool={currentTool}
+                onToolChange={setCurrentTool}
+                brushShape={brushShape}
+                onBrushShapeChange={setBrushShape}
+                brushSize={brushSize}
+                onBrushSizeChange={setBrushSize}
+              />
+              <ColorPalette
+                currentColor={currentColor}
+                onColorChange={setCurrentColor}
+                customColors={recentCustomColors}
+              />
+              {/* Info Panel */}
+              <div className="bg-white rounded-lg shadow-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Info</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div>Canvas: {canvasState.width} × {canvasState.height}</div>
+                  <div>Tool: {currentTool}</div>
+                  <div>Zoom: {pixelSize}px per pixel</div>
+                  <div>History: {history.length} states</div>
+                </div>
+              </div>
             </div>
+            {/* Canvas Area */}
+            <Canvas
+              canvasState={canvasState}
+              onCanvasChange={handleCanvasChange}
+              currentColor={currentColor}
+              currentTool={currentTool}
+              pixelSize={pixelSize}
+              onColorPick={setCurrentColor}
+              brushShape={brushShape}
+              brushSize={brushSize}
+              onCustomColorUsed={pushRecentCustomColor}
+            />
+          </>
+        ) : (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-gray-500 text-xl font-semibold">Display Drawings tab coming soon...</div>
           </div>
-        </div>
-
-        {/* Canvas Area */}
-        <Canvas
-          canvasState={canvasState}
-          onCanvasChange={handleCanvasChange}
-          currentColor={currentColor}
-          currentTool={currentTool}
-          pixelSize={pixelSize}
-          onColorPick={setCurrentColor}
-          brushShape={brushShape}
-          brushSize={brushSize}
-          onCustomColorUsed={pushRecentCustomColor}
-        />
+        )}
       </div>
     </div>
   );
