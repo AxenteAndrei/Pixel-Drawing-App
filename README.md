@@ -54,6 +54,6 @@ A modern, mobile-friendly pixel art drawing app with online gallery, built with 
 - `public/` — Static assets (including PatchNotes.md)
 
 ## Credits
-- Built Andrei with help from Cursor AI & Bolt
+- Built by Andrei with help from Bolt & Cursor AI :D
 - Uses [React](https://react.dev/), [Vite](https://vitejs.dev/), [Tailwind CSS](https://tailwindcss.com/), [Supabase](https://supabase.com/)
 
